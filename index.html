@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trình Quản lý Đơn Hàng</title>
+    
+    <!-- MỚI: Khai báo PWA -->
+    <link rel="manifest" href="manifest.json">
+    <!-- MỚI: Màu sắc cho thanh công cụ trình duyệt (Safari/Chrome) -->
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* (Style giữ nguyên như cũ) */
+        body { font-family: 'Inter', sans-serif; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none; margin: 0;
+        }
+        input[type=number] { -moz-appearance: textfield; text-align: center; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- (Toàn bộ HTML của ứng dụng giữ nguyên như cũ) -->
+    <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg w-full max-w-lg">
+        
+        <h1 class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-6">
+            📝 Báo Cáo Bán Hàng
+        </h1>
+
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">1. Nhập Số Lượng</h2>
+            <div id="item-list" class="space-y-4">
+                <!-- JS chèn các mục vào đây -->
+            </div>
+        </div>
+
+        <div class="text-center my-6">
+            <button id="calculate-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition duration-200 text-lg">
+                Tính Số Lượng Bán
+            </button>
+        </div>
+
+        <hr class="my-6">
+
+        <div>
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">
+                2. Kết Quả Đã Bán
+            </h2>
+            <div id="result-container">
+                <ul id="order-summary" class="space-y-2">
+                    <li class="text-gray-500 italic text-center">Hãy nhập số lượng và nhấn "Tính toán".</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- (Toàn bộ script logic của ứng dụng giữ nguyên như cũ) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const items = [
+                'Vỏ bánh', 'Bò', 'Tôm', 'Gà', 
+                'Xúc xích', 'Trứng', 'Phô mai'
+            ];
+            const recipes = [
+                { name: 'Burger Bò Trứng', ingredients: { 'Vỏ bánh': 1, 'Bò': 1, 'Trứng': 1 }, color: 'text-green-600', bgColor: 'bg-green-50' },
+                { name: 'Burger Tôm', ingredients: { 'Vỏ bánh': 1, 'Tôm': 1 }, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+                { name: 'Burger Gà', ingredients: { 'Vỏ bánh': 1, 'Gà': 1 }, color: 'text-orange-600', bgColor: 'bg-orange-50' },
+                { name: 'Burger Trứng', ingredients: { 'Vỏ bánh': 1, 'Trứng': 1 }, color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
+                { name: 'Burger Xúc xích', ingredients: { 'Vỏ bánh': 1, 'Xúc xích': 1 }, color: 'text-red-600', bgColor: 'bg-red-50' }
+            ];
+
+            const itemList = document.getElementById('item-list');
+            const summaryList = document.getElementById('order-summary');
+            const calculateBtn = document.getElementById('calculate-btn');
+
+            items.forEach(item => {
+                const itemRow = document.createElement('div');
+                itemRow.className = 'flex justify-between items-center bg-gray-50 p-3 rounded-lg';
+                const itemName = document.createElement('label');
+                itemName.textContent = item;
+                itemName.className = 'text-lg text-gray-700 font-medium';
+                const inputWrapper = document.createElement('div');
+                inputWrapper.className = 'flex items-center gap-2';
+                const id = item.replace(/\s+/g, '-');
+                const inputNhan = document.createElement('input');
+                inputNhan.type = 'number';
+                inputNhan.min = '0';
+                inputNhan.placeholder = 'Nhận';
+                inputNhan.id = `item-nhan-${id}`;
+                inputNhan.className = 'quantity-input w-20 h-10 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-center font-semibold';
+                const inputTra = document.createElement('input');
+                inputTra.type = 'number';
+                inputTra.min = '0';
+                inputTra.placeholder = 'Trả';
+                inputTra.id = `item-tra-${id}`;
+                inputTra.className = 'quantity-input w-20 h-10 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-center font-semibold';
+                inputWrapper.appendChild(inputNhan);
+                inputWrapper.appendChild(inputTra);
+                itemRow.appendChild(itemName);
+                itemRow.appendChild(inputWrapper);
+                itemList.appendChild(itemRow);
+            });
+
+            function calculateAndDisplaySummary() {
+                summaryList.innerHTML = ''; 
+                const quantities = {};
+                items.forEach(item => {
+                    const id = item.replace(/\s+/g, '-');
+                    const valNhan = parseInt(document.getElementById(`item-nhan-${id}`).value, 10) || 0;
+                    const valTra = parseInt(document.getElementById(`item-tra-${id}`).value, 10) || 0;
+                    quantities[item] = Math.max(0, valNhan - valTra);
+                });
+
+                const comboResults = {};
+                let hasItems = false;
+                recipes.forEach(recipe => {
+                    let maxCombos = Infinity;
+                    for (const ingredient in recipe.ingredients) {
+                        maxCombos = Math.min(maxCombos, Math.floor((quantities[ingredient] || 0) / recipe.ingredients[ingredient]));
+                    }
+                    if (maxCombos > 0) {
+                        hasItems = true;
+                        if (comboResults[recipe.name]) { comboResults[recipe.name].amount += maxCombos; }
+                        else { comboResults[recipe.name] = { amount: maxCombos, ...recipe }; }
+                        for (const ingredient in recipe.ingredients) {
+                            quantities[ingredient] -= maxCombos * recipe.ingredients[ingredient];
+                        }
+                    }
+                });
+
+                for (const comboName in comboResults) {
+                    appendSummaryItem(comboName, comboResults[comboName].amount, comboResults[comboName].color, comboResults[comboName].bgColor);
+                }
+                for (const item in quantities) {
+                    if (quantities[item] > 0) {
+                        hasItems = true;
+                        let isRecipeIngredient = recipes.some(recipe => recipe.ingredients[item]);
+                        appendSummaryItem(isRecipeIngredient ? `${item} (còn lại)` : item, quantities[item], 'text-gray-800', 'bg-blue-50');
+                    }
+                }
+                if (!hasItems) {
+                    summaryList.innerHTML = '<li class="text-gray-500 italic text-center">Không có món nào được bán.</li>';
+                }
+            }
+
+            function appendSummaryItem(name, quantity, textColor, bgColor) {
+                const li = document.createElement('li');
+                li.className = `py-2 px-3 rounded-md flex justify-between ${bgColor}`;
+                li.innerHTML = `<span class="font-medium ${textColor}">${name}</span><span class="font-bold ${textColor}">x ${quantity}</span>`;
+                summaryList.appendChild(li);
+            }
+
+            calculateBtn.addEventListener('click', calculateAndDisplaySummary);
+        });
+    </script>
+
+    <!-- MỚI: Kích hoạt Service Worker để chạy offline -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker Đã đăng ký: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker Đăng ký thất bại: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
+
+
