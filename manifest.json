@@ -20,4 +20,13 @@
   "display": "standalone",
   "theme_color": "#ffffff",
   "background_color": "#f3f4f6"
+  
+  "icons": [
+    {
+      "src": "image/phong.png",
+    },
+
+  ],
+
+  
 }
