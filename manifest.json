@@ -21,10 +21,15 @@
   "theme_color": "#ffffff",
   "background_color": "#f3f4f6"
   
+  ...
   "icons": [
     {
-      "src": "42e2374699519229a0dbf8904718bd3f.jpg",
+      "src": "https://placehold.co/192x192/0284c7/white?text=QLĐ",
+...
     },
+...
+  ],
+...
 
   ],
 
