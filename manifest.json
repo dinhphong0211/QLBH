@@ -1,0 +1,23 @@
+{
+  "short_name": "QL Đơn",
+  "name": "Trình Quản lý Đơn Hàng",
+  "description": "Ứng dụng quản lý đơn hàng burger.",
+  "icons": [
+    {
+      "src": "https://placehold.co/192x192/0284c7/white?text=QLĐ",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://placehold.co/512x512/0284c7/white?text=QLĐ",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#ffffff",
+  "background_color": "#f3f4f6"
+}
