@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Quản Lý Kho Burger Pro</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3075/3075977.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* Reset cơ bản */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            touch-action: manipulation; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        input, select, textarea, button { font-size: 16px !important; } 
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; text-align: center; }
+
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Custom Input Group */
+        .input-group {
+            display: flex;
+            align-items: center;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #f9fafb;
+            height: 36px;
+        }
+        .input-group button {
+            width: 24px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #6b7280;
+            background: #f3f4f6;
+            font-size: 14px !important;
+        }
+        .input-group button:active { background: #e5e7eb; }
+        .input-group input {
+            width: 40px;
+            height: 100%;
+            border: none;
+            background: transparent;
+            padding: 0;
+            font-size: 14px !important;
+            font-weight: 700;
+        }
+        .input-group input:focus { outline: none; background: #fff; }
+
+        /* Suggestion Bar */
+        #suggestion-bar {
+            transform: translateY(100%);
+            transition: transform 0.2s ease-out;
+        }
+        #suggestion-bar.active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 h-[100dvh] flex flex-col overflow-hidden">
+
+    <header class="flex-none bg-white border-b border-gray-200 px-4 py-3 flex justify-between items-center shadow-sm z-20">
+        <h1 class="text-lg font-bold text-gray-800 flex items-center gap-2"> 🍔 Kho & Tiền
+        </h1>
+        <button id="reset-btn" class="text-xs bg-red-50 text-red-600 px-3 py-2 rounded font-bold active:bg-red-100 border border-red-100">
+            Làm mới
+        </button>
+    </header>
+
+    <div class="flex-none grid grid-cols-2 border-b border-gray-200 bg-white z-10">
+        <button id="tab-input" class="py-3 text-sm font-bold text-blue-600 border-b-2 border-blue-600 transition-colors">Nhập Kho</button>
+        <button id="tab-history" class="py-3 text-sm font-bold text-gray-400 border-b-2 border-transparent transition-colors">Lịch Sử</button>
+    </div>
+
+    <main id="main-container" class="flex-1 overflow-y-auto bg-gray-50 p-2 scroll-smooth relative pb-24">
+        
+        <div id="view-input" class="fade-in">
+            <div class="grid grid-cols-2 gap-3 mb-4 mt-2">
+                <button onclick="copyToClipboard('n')" class="flex items-center justify-center gap-2 bg-white border border-blue-200 text-blue-600 py-2.5 rounded-lg text-xs font-bold shadow-sm active:bg-blue-50">
+                    📋 Copy Mẫu Nhận
+                </button>
+                <button onclick="copyToClipboard('t')" class="flex items-center justify-center gap-2 bg-white border border-red-200 text-red-500 py-2.5 rounded-lg text-xs font-bold shadow-sm active:bg-red-50">
+                    📋 Copy Mẫu Trả
+                </button>
+            </div>
+
+            <div class="flex justify-between text-[10px] font-bold text-gray-400 uppercase mb-2 px-1 tracking-wider sticky top-0 bg-gray-50 py-2 z-10">
+                <span class="w-1/3 pt-1">Tên hàng</span>
+                <div class="flex gap-6 pr-2">
+                    <span class="w-20 text-center bg-blue-50 text-blue-600 rounded py-0.5">Nhận</span>
+                    <span class="w-20 text-center bg-red-50 text-red-500 rounded py-0.5">Trả</span>
+                </div>
+            </div>
+            
+            <div id="item-list" class="space-y-2 pb-10"></div>
+
+            <div id="result-section" class="hidden mt-6 mb-2">
+                <div class="bg-white rounded-xl border border-blue-100 shadow-sm overflow-hidden">
+                    <div class="bg-blue-50 p-4 border-b border-blue-100 flex justify-between items-center">
+                        <div>
+                            <div class="text-xs font-bold text-blue-800 uppercase opacity-70">Tổng Doanh Thu</div>
+                            <div class="text-3xl font-black text-blue-600 tracking-tight" id="total-revenue">0</div>
+                            <div class="text-xs font-semibold text-gray-500 mt-1" id="total-count">0 bánh</div>
+                        </div>
+                        <button id="save-btn" class="bg-yellow-400 text-yellow-900 text-xs font-bold py-2 px-3 rounded-lg shadow-sm active:scale-95 active:bg-yellow-500 transition">Lưu Phiếu</button>
+                    </div>
+                    <div class="p-3">
+                        <div class="text-xs font-bold text-gray-400 uppercase mb-2">Chi tiết bán:</div>
+                        <ul id="sales-list" class="space-y-2 text-sm"></ul>
+                        <div class="mt-4 pt-3 border-t border-dashed border-gray-200">
+                            <div class="text-xs font-bold text-gray-400 uppercase mb-2">Bảng kê chi tiết:</div>
+                            <table class="w-full text-xs text-gray-500"><thead class="bg-gray-100"><tr><th class="py-1 px-2 text-left rounded-l">Món</th><th class="py-1 px-1 text-center">Nhận</th><th class="py-1 px-1 text-center">Trả</th><th class="py-1 px-2 text-right rounded-r">Dùng</th></tr></thead><tbody id="table-body" class="divide-y divide-gray-50 text-gray-700"></tbody></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-history" class="hidden fade-in pb-4">
+            <div class="flex justify-between items-center mb-4 px-1 sticky top-0 bg-gray-50 py-2 z-10">
+                <h2 class="font-bold text-gray-700 text-sm">Danh sách phiếu đã lưu</h2>
+                <button id="clear-history" class="text-xs text-red-500 font-medium underline p-2">Xóa tất cả</button>
+            </div>
+            <div id="history-list" class="space-y-3"></div>
+        </div>
+    </main>
+ <div id="suggestion-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-50 flex gap-2 overflow-x-auto shadow-[0_-4px_10px_rgba(0,0,0,0.1)] safe-pb">
+        </div>
+
+    <div class="flex-none bg-white border-t border-gray-200 p-3 safe-pb z-30 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] relative">
+        <button id="calculate-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] transition-all text-lg flex justify-center items-center gap-2">
+            <span>TÍNH TOÁN</span>
+        </button>
+    </div>
+
+    <script>
+        const dataConfig = [
+            { title: "Nguyên liệu", items: ['Vỏ bánh', 'Bò', 'Tôm', 'Gà', 'Xúc xích', 'Trứng', 'Phô mai'] },
+            { title: "Phụ gia & Khác", items: ['Bơ', 'Tương cà', 'Tương ớt', 'Rau', 'Gas', 'Tiền lẻ'] }
+        ];
+        
+        // Cấu hình Option gợi ý
+        const presets = {
+            'Bơ': [150, 250, 450, 500, 1000],
+            'Tương cà': [150, 250, 450, 500, 1000],
+            'Tương ớt': [150, 250, 450, 500, 1000],
+            'Rau': [150, 200, 250, 300],
+            'Tiền lẻ': [300, 500]
+        };
+
+        const prices = { product: { 'Burger Bò Trứng': 20000, 'Burger Gà': 20000, 'Burger Tôm': 20000, 'Burger Xúc Xích': 20000, 'Burger Bò': 18000, 'Burger Trứng': 10000 }, ingredient: { 'Phô mai': 5000, 'Trứng': 2000, 'Bò': 10000, 'Gà': 12000, 'Xúc xích': 12000, 'Tôm': 12000, 'Vỏ bánh': 8000 } };
+        const recipes = [ { name: 'Burger Bò Trứng', ing: { 'Vỏ bánh': 1, 'Bò': 1, 'Trứng': 1 } }, { name: 'Burger Bò', ing: { 'Vỏ bánh': 1, 'Bò': 1 } }, { name: 'Burger Tôm', ing: { 'Vỏ bánh': 1, 'Tôm': 1 } }, { name: 'Burger Gà', ing: { 'Vỏ bánh': 1, 'Gà': 1 } }, { name: 'Burger Trứng', ing: { 'Vỏ bánh': 1, 'Trứng': 1 } }, { name: 'Burger Xúc Xích', ing: { 'Vỏ bánh': 1, 'Xúc xích': 1 } } ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const refs = { list: document.getElementById('item-list'), result: document.getElementById('result-section'), sales: document.getElementById('sales-list'), table: document.getElementById('table-body'), rev: document.getElementById('total-revenue'), count: document.getElementById('total-count'), history: document.getElementById('history-list'), btnCalc: document.getElementById('calculate-btn'), viewInput: document.getElementById('view-input'), viewHistory: document.getElementById('view-history'), tabInput: document.getElementById('tab-input'), tabHistory: document.getElementById('tab-history'), suggestBar: document.getElementById('suggestion-bar') };
+            let currentReport = null;
+            let activeInputId = null;
+            const allItems = dataConfig.flatMap(c => c.items);
+            const fmt = n => new Intl.NumberFormat('vi-VN').format(n) + '₫';
+
+            // RENDER UI
+            dataConfig.forEach(cat => {
+                refs.list.innerHTML += `<div class="text-[10px] font-bold text-gray-400 uppercase mt-4 mb-2 ml-1 tracking-wider">${cat.title}</div>`;
+                cat.items.forEach(item => {
+                    const id = item.replace(/\s+/g, '-');
+                    const hasPreset = presets[item] ? '⚡' : '';
+                    refs.list.innerHTML += `
+                        <div class="flex justify-between items-center bg-white p-2.5 rounded-xl border border-gray-200 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+                            <span class="text-sm font-bold text-gray-700 flex-1 pr-2 leading-tight">${item} <span class="text-[10px] text-yellow-500">${hasPreset}</span></span>
+                            <div class="flex gap-2">
+                                <div class="input-group w-24 border-blue-200 focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500">
+                                    <button onclick="adjustVal('n-${id}', -1)">-</button>
+                                    <input type="number" inputmode="numeric" pattern="[0-9]*" id="n-${id}" data-item="${item}" class="inp text-blue-600 text-center" placeholder="-">
+                                    <button onclick="adjustVal('n-${id}', 1)">+</button>
+                                </div>
+                                <div class="input-group w-24 border-red-200 focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500">
+                                    <button onclick="adjustVal('t-${id}', -1)">-</button>
+                                    <input type="number" inputmode="numeric" pattern="[0-9]*" id="t-${id}" data-item="${item}" class="inp text-red-500 text-center" placeholder="-">
+                                    <button onclick="adjustVal('t-${id}', 1)">+</button>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+            });
+
+            // LOGIC CỘNG TRỪ
+            window.adjustVal = (id, delta) => {
+                const el = document.getElementById(id);
+                let val = parseInt(el.value) || 0;
+                val += delta;
+                if (val < 0) val = 0;
+                el.value = val > 0 ? val : '';
+                saveTemp();
+            };
+
+            // LOGIC GỢI Ý (PRESETS)
+            const handleFocus = (e) => {
+                const item = e.target.dataset.item;
+                activeInputId = e.target.id;
+                
+                if (item && presets[item]) {
+                    // Tạo buttons cho thanh gợi ý
+                    const options = presets[item].map(val => 
+                        `<button onclick="setPresetVal(${val})" class="flex-none bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded-lg border border-gray-200 active:bg-blue-100 active:text-blue-700 active:border-blue-300 text-sm whitespace-nowrap min-w-[60px]">${val}</button>`
+                    ).join('');
+                    
+                    refs.suggestBar.innerHTML = `<div class="flex items-center px-2 text-[10px] font-bold text-gray-400 uppercase">Gợi ý:</div>` + options;
+                    refs.suggestBar.classList.add('active');
+                    refs.btnCalc.parentElement.style.paddingBottom = '60px'; // Đẩy nút tính toán lên
+                } else {
+                    hideSuggest();
+                }
+            };
+
+            const hideSuggest = () => {
+                refs.suggestBar.classList.remove('active');
+                refs.btnCalc.parentElement.style.paddingBottom = 'env(safe-area-inset-bottom)';
+            };
+
+            window.setPresetVal = (val) => {
+                if(activeInputId) {
+                    const el = document.getElementById(activeInputId);
+                    el.value = val;
+                    saveTemp();
+                }
+            };
+
+            // AUTO SAVE & RESTORE
+            const saveTemp = () => { const d = {}; document.querySelectorAll('.inp').forEach(x => { if(x.value) d[x.id] = x.value; }); localStorage.setItem('app_temp', JSON.stringify(d)); };
+            
+            const inputs = document.querySelectorAll('.inp');
+            inputs.forEach(i => { 
+                i.addEventListener('input', () => { if(i.value < 0) i.value = 0; saveTemp(); }); 
+                i.addEventListener('focus', handleFocus);
+                i.addEventListener('blur', () => setTimeout(hideSuggest, 200)); // Delay để kịp bắt sự kiện click button
+            });
+
+            try { const saved = JSON.parse(localStorage.getItem('app_temp')); if(saved) Object.keys(saved).forEach(k => { if(document.getElementById(k)) document.getElementById(k).value = saved[k]; }); } catch(e){}
+
+            // CALCULATE BUTTON
+            refs.btnCalc.addEventListener('click', () => {
+                if(refs.viewInput.classList.contains('hidden')) refs.tabInput.click();
+                let raw = {}, hasData = false, tableHTML = '', totalM = 0, totalB = 0; refs.sales.innerHTML = '';
+                
+                allItems.forEach(item => { 
+                    const id = item.replace(/\s+/g, '-'); 
+                    const n = parseInt(document.getElementById(`n-${id}`).value)||0; 
+                    const t = parseInt(document.getElementById(`t-${id}`).value)||0; 
+                    
+                    if(n>0||t>0) { 
+                        hasData = true; 
+                        let net = Math.max(0, n-t); 
+                        // Nếu là Tiền lẻ thì chỉ ghi nhận, không tính toán net cho công thức
+                        if (item === 'Tiền lẻ') net = 0;
+
+                        raw[item] = net; 
+                        
+                        // Style riêng cho Tiền lẻ trong bảng
+                        const isMoney = item === 'Tiền lẻ';
+                        const displayNet = isMoney ? '-' : net;
+                        const rowClass = isMoney ? 'bg-yellow-50' : 'border-b border-gray-50 last:border-0';tableHTML += `<tr class="${rowClass}"><td class="py-2 px-2 font-medium">${item}</td><td class="py-2 px-1 text-center text-blue-500">${n}</td><td class="py-2 px-1 text-center text-red-400">${t}</td><td class="py-2 px-2 text-right font-bold">${displayNet}</td></tr>`; 
+                    } else { 
+                        raw[item]=0; 
+                    } 
+                });
+
+                if(!hasData) return alert('Vui lòng nhập số liệu!');
+                
+                // Copy raw để tính toán trừ dần
+                let rem = {...raw};
+                
+                // 1. Tính Burger hoàn chỉnh
+                recipes.forEach(r => { 
+                    let c = Infinity; 
+                    for(let k in r.ing) { 
+                        if((rem[k]||0)===0) { c=0; break; } 
+                        c = Math.min(c, Math.floor(rem[k]/r.ing[k])); 
+                    } 
+                    if(c===Infinity) c=0; 
+                    if(c>0) { 
+                        const m = c*prices.product[r.name]; 
+                        totalM+=m; 
+                        totalB+=c; 
+                        for(let k in r.ing) rem[k]-=c*r.ing[k]; 
+                        refs.sales.innerHTML += `<li class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-800 font-bold">${r.name} <small class="text-gray-400 font-normal">x${c}</small></span><span class="font-bold text-blue-600">${fmt(m)}</span></li>`; 
+                    } 
+                });
+
+                // 2. Tính nguyên liệu dư (Trừ Tiền lẻ)
+                for(let k in rem) { 
+                    if(rem[k]>0 && prices.ingredient[k] && k !== 'Tiền lẻ') { 
+                        const m = rem[k]*prices.ingredient[k]; 
+                        totalM+=m; 
+                        if(k==='Vỏ bánh') totalB+=rem[k]; 
+                        refs.sales.innerHTML += `<li class="flex justify-between py-1 border-b border-gray-100 last:border-0 text-gray-500"><span>${k} (dư) <small>x${rem[k]}</small></span><span>${fmt(m)}</span></li>`; 
+                    } 
+                }
+                
+                // Update UI
+                refs.table.innerHTML = tableHTML; 
+                refs.rev.innerText = fmt(totalM); 
+                refs.count.innerText = `Tổng bánh: ${totalB}`; 
+                refs.result.classList.remove('hidden'); 
+                setTimeout(() => { refs.result.scrollIntoView({behavior:'smooth', block:'start'}); }, 100);
+
+                currentReport = { id: Date.now(), time: new Date().toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'}), money: totalM, count: totalB, html: `<div class="mb-2 font-bold text-blue-600 text-xs">CHI TIẾT:</div><ul class="mb-3 text-sm">${refs.sales.innerHTML}</ul><div class="font-bold text-gray-400 text-[10px] uppercase border-t pt-2">BẢNG KÊ GỐC:</div><table class="w-full text-xs text-gray-500 mt-1">${tableHTML}</table>` };
+            });
+
+            // COPY FUNCTION
+            window.copyToClipboard = (type) => {
+                let header = type === 'n' ? 'NHẬN HÀNG' : 'TRẢ HÀNG';
+                let text = `${header}\n`;
+                let count = 0;
+                
+                dataConfig.forEach(cat => {
+                    cat.items.forEach(item => {
+                        const id = item.replace(/\s+/g, '-');
+                        const el = document.getElementById(`${type}-${id}`);
+                        const val = el.value ? el.value : '';
+                        if(val) {
+                            text += `${item}: ${val}\n`;
+                            count++;
+                        }
+                    });
+                });
+                
+                if(count === 0) return alert('Chưa có dữ liệu nào để copy!');
+
+                navigator.clipboard.writeText(text).then(() => {
+                    alert(`Đã copy mẫu ${header}!`);
+                }).catch(err => {
+                    console.error('Lỗi copy:', err);
+                    alert('Lỗi copy, thử chọn thủ công.');
+                });
+            };
+
+            // SAVE & HISTORY (Giữ nguyên logic cũ)
+            document.getElementById('save-btn').addEventListener('click', () => { if(!currentReport) return; let h = JSON.parse(localStorage.getItem('app_hist')||'[]'); h.unshift(currentReport); localStorage.setItem('app_hist', JSON.stringify(h)); alert('Đã lưu!'); refs.tabHistory.click(); });
+            const renderHistory = () => { let h = JSON.parse(localStorage.getItem('app_hist')||'[]'); if(h.length===0) { refs.history.innerHTML = '<div class="text-center text-gray-400 py-10 text-xs">Chưa có lịch sử</div>'; return; } refs.history.innerHTML = h.map(x => `<div class="bg-white p-3 rounded-lg border border-gray-200 shadow-sm"><div class="flex justify-between border-b border-gray-100 pb-2 mb-2"><span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">${x.time}</span><button onclick="delItem(${x.id})" class="text-xs text-red-500 font-bold px-2">XÓA</button></div><div class="flex justify-between items-center mb-3"><span class="text-lg font-black text-blue-600">${fmt(x.money)}</span><span class="font-bold text-gray-600 text-xs bg-gray-100 px-2 py-1 rounded-full">${x.count} bánh</span></div><div class="bg-gray-50 p-2 rounded text-xs text-gray-600 border border-gray-100">${x.html}</div></div>`).join(''); };
+            window.delItem = (id) => { if(confirm('Xóa phiếu này?')) { let h = JSON.parse(localStorage.getItem('app_hist')||'[]'); localStorage.setItem('app_hist', JSON.stringify(h.filter(x => x.id !== id))); renderHistory(); }};
+            document.getElementById('clear-history').addEventListener('click', () => { if(confirm('Xóa hết?')) { localStorage.removeItem('app_hist'); renderHistory(); } });
+            document.getElementById('reset-btn').addEventListener('click', () => { if(confirm('Xóa nhập liệu?')) { inputs.forEach(i=>i.value=''); localStorage.removeItem('app_temp'); refs.result.classList.add('hidden'); hideSuggest(); } });
+            
+            // TABS SWITCH
+            const switchTab = (isH) => { 
+                refs.viewInput.classList.toggle('hidden', isH); 
+                refs.viewHistory.classList.toggle('hidden', !isH); 
+                refs.btnCalc.parentElement.classList.toggle('hidden', isH); 
+                refs.tabInput.className = isH ? 'py-3 text-sm font-bold text-gray-400 border-b-2 border-transparent transition-colors' : 'py-3 text-sm font-bold text-blue-600 border-b-2 border-blue-600 transition-colors'; 
+                refs.tabHistory.className = !isH ? 'py-3 text-sm font-bold text-gray-400 border-b-2 border-transparent transition-colors' : 'py-3 text-sm font-bold text-blue-600 border-b-2 border-blue-600 transition-colors'; 
+                if(isH) renderHistory(); 
+                else hideSuggest();
+            };
+            refs.tabInput.onclick = () => switchTab(false); 
+            refs.tabHistory.onclick = () => switchTab(true);
+        });
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js');
+            });
+        }
+    </script>
+</body>
+</html>
